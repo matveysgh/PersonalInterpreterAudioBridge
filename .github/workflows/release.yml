@@ -1,0 +1,74 @@
+name: Release Audio Bridge
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "audio-bridge-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require release credentials
+        run: |
+          for variable in MACOS_CERTIFICATE_BASE64 MACOS_CERTIFICATE_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "::error::$variable is required for a production release"
+              exit 1
+            fi
+          done
+      - name: Import Developer ID Application certificate
+        run: |
+          keychain="$RUNNER_TEMP/audio-bridge-signing.keychain-db"
+          certificate="$RUNNER_TEMP/developer-id-application.p12"
+          echo "$MACOS_CERTIFICATE_BASE64" | base64 --decode > "$certificate"
+          security create-keychain -p actions "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p actions "$keychain"
+          security import "$certificate" -k "$keychain" \
+            -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: -s -k actions "$keychain"
+          security list-keychains -d user -s "$keychain"
+          security find-identity -v -p codesigning "$keychain"
+      - name: Build, sign, notarize and staple
+        run: |
+          PI_APPLICATION_IDENTITY="Developer ID Application" \
+          APPLE_ID="$APPLE_ID" \
+          APPLE_APP_SPECIFIC_PASSWORD="$APPLE_APP_SPECIFIC_PASSWORD" \
+          APPLE_TEAM_ID="$APPLE_TEAM_ID" \
+            ./Scripts/build_personal_interpreter_bridge.sh
+      - name: Validate release archive
+        run: |
+          app="build-personal-interpreter/Personal Interpreter Mic Installer.app"
+          driver="$app/Contents/Resources/Personal Interpreter Mic.driver"
+          codesign --verify --deep --strict --verbose=4 "$app"
+          xcrun stapler validate "$app"
+          spctl --assess --type execute --verbose=4 "$app"
+          file "$app/Contents/MacOS/PersonalInterpreterMicInstaller" | grep -q arm64
+          file "$app/Contents/MacOS/PersonalInterpreterMicInstaller" | grep -q x86_64
+          file "$driver/Contents/MacOS/BlackHole" | grep -q arm64
+          file "$driver/Contents/MacOS/BlackHole" | grep -q x86_64
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/audio-bridge-v')
+        with:
+          prerelease: true
+          generate_release_notes: true
+          files: build-personal-interpreter/PersonalInterpreterAudioBridge-*.zip
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/audio-bridge-v') }}
+        with:
+          name: PersonalInterpreterAudioBridge
+          path: build-personal-interpreter/PersonalInterpreterAudioBridge-*.zip

@@ -11,13 +11,15 @@ branding and compiled binaries are not redistributed.
 
 ## Build
 
-Install the Developer ID Application and Developer ID Installer certificates,
-then run:
+Install the Developer ID Application certificate, configure a notarytool
+keychain profile, then run:
 
 ```zsh
-PI_INSTALLER_IDENTITY="Developer ID Installer: Your Name (TEAMID)" \
+PI_APPLICATION_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+PI_NOTARY_PROFILE="personal-interpreter-notary" \
   ./Scripts/build_personal_interpreter_bridge.sh
 ```
 
-The resulting package must be notarized and stapled before publication. The
-installer writes only the driver bundle to `/Library/Audio/Plug-Ins/HAL`.
+The resulting ZIP contains a signed, notarized installer application. The
+installer writes only the driver bundle to `/Library/Audio/Plug-Ins/HAL` and
+restarts CoreAudio so the microphone appears without a Mac reboot.

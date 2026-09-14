@@ -28,3 +28,5 @@ jobs:
           file "$binary" | grep -q x86_64
           strings "$binary" | grep -q "Personal Interpreter Mic"
           strings "$binary" | grep -q "com.interpreter.PersonalInterpreter.AudioBridge"
+      - name: Type-check installer application
+        run: swiftc -typecheck -framework AppKit InstallerApp/main.swift

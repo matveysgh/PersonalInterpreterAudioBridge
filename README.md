@@ -12,20 +12,23 @@ microphone compatibility is needed.
 ## Status
 
 The driver builds as a universal `arm64` + `x86_64` CoreAudio bundle and exposes
-two channels at 44.1 and 48 kHz. A public installer release still requires a
-Developer ID Installer certificate, Apple notarization, and release validation.
-Never distribute an unsigned package to end users.
+two channels at 44.1 and 48 kHz. It is bundled in a small installer application,
+so releases need a Developer ID Application certificate and Apple notarization;
+a separate Developer ID Installer certificate is not required. Never distribute
+an unsigned or unnotarized build to end users.
 
 ## Building a release
 
 ```zsh
-PI_INSTALLER_IDENTITY="Developer ID Installer: Your Name (TEAMID)" \
+PI_APPLICATION_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+  PI_NOTARY_PROFILE="personal-interpreter-notary" \
   ./Scripts/build_personal_interpreter_bridge.sh
 ```
 
-Then notarize and staple the resulting package before attaching it to a GitHub
-release. Users select `Personal Interpreter Mic` as the microphone inside their
-calling application.
+The script signs, notarizes and staples the installer app before creating the
+release ZIP. When opened, the installer asks for administrator authorization
+once and installs only the audio driver. Users then select
+`Personal Interpreter Mic` as the microphone inside their calling application.
 
 ## License and attribution
 
