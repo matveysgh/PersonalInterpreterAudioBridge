@@ -1,0 +1,29 @@
+name: Verify Audio Bridge
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build unsigned universal driver
+        run: |
+          xcodebuild \
+            -project BlackHole.xcodeproj \
+            -configuration Release \
+            -target BlackHole \
+            CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/products" \
+            MACOSX_DEPLOYMENT_TARGET=14.0 \
+            PRODUCT_BUNDLE_IDENTIFIER=com.interpreter.PersonalInterpreter.AudioBridge \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Verify architectures and product identity
+        run: |
+          binary="$RUNNER_TEMP/products/BlackHole.driver/Contents/MacOS/BlackHole"
+          file "$binary" | grep -q arm64
+          file "$binary" | grep -q x86_64
+          strings "$binary" | grep -q "Personal Interpreter Mic"
+          strings "$binary" | grep -q "com.interpreter.PersonalInterpreter.AudioBridge"

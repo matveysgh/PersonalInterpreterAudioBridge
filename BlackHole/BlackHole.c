@@ -150,19 +150,19 @@ struct ObjectInfo {
 
 
 #ifndef kDriver_Name
-#define                             kDriver_Name                        "BlackHole"
+#define                             kDriver_Name                        "Personal Interpreter"
 #endif
 
 #ifndef kPlugIn_BundleID
-#define                             kPlugIn_BundleID                    "audio.existential.BlackHole2ch"
+#define                             kPlugIn_BundleID                    "com.interpreter.PersonalInterpreter.AudioBridge"
 #endif
 
 #ifndef kPlugIn_Icon
-#define                             kPlugIn_Icon                        "BlackHole.icns"
+#define                             kPlugIn_Icon                        ""
 #endif
 
 #ifndef kHas_Driver_Name_Format
-#define                             kHas_Driver_Name_Format             true
+#define                             kHas_Driver_Name_Format             false
 #endif
 
 #if kHas_Driver_Name_Format
@@ -190,11 +190,11 @@ struct ObjectInfo {
 
 
 #ifndef kDevice_Name
-#define                             kDevice_Name                        kDriver_Name " "
+#define                             kDevice_Name                        "Personal Interpreter Mic"
 #endif
 
 #ifndef kDevice2_Name
-#define                             kDevice2_Name                       kDriver_Name " Mirror"
+#define                             kDevice2_Name                       "Personal Interpreter Mic Monitor"
 #endif
 
 #endif
@@ -324,7 +324,7 @@ static const UInt32                 kDevice_ObjectListSize              = sizeof
 static const UInt32                 kDevice2_ObjectListSize              = sizeof(kDevice2_ObjectList) / sizeof(struct ObjectInfo);
 
 #ifndef kSampleRates
-#define                             kSampleRates       8000, 16000, 24000, 44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000
+#define                             kSampleRates       44100, 48000
 #endif
 
 static Float64                      kDevice_SampleRates[]               = { kSampleRates };
@@ -435,15 +435,13 @@ static AudioServerPlugInDriverInterface*    gAudioServerPlugInDriverInterfacePtr
 static AudioServerPlugInDriverRef            gAudioServerPlugInDriverRef                = &gAudioServerPlugInDriverInterfacePtr;
 
 
-#define RETURN_FORMATTED_STRING(_string_fmt)                          \
-if(kHas_Driver_Name_Format)                                           \
-{                                                                     \
-	return CFStringCreateWithFormat(NULL, NULL, CFSTR(_string_fmt), kNumber_Of_Channels); \
-}                                                                     \
-else                                                                  \
-{                                                                     \
-	return CFStringCreateWithCString(NULL, _string_fmt, kCFStringEncodingUTF8); \
-}
+#if kHas_Driver_Name_Format
+#define RETURN_FORMATTED_STRING(_string_fmt) \
+	return CFStringCreateWithFormat(NULL, NULL, CFSTR(_string_fmt), kNumber_Of_Channels);
+#else
+#define RETURN_FORMATTED_STRING(_string_fmt) \
+	return CFStringCreateWithCString(NULL, _string_fmt, kCFStringEncodingUTF8);
+#endif
 
 static CFStringRef get_box_uid(void)          { RETURN_FORMATTED_STRING(kBox_UID) }
 static CFStringRef get_device_uid(void)       { RETURN_FORMATTED_STRING(kDevice_UID) }
@@ -1510,7 +1508,7 @@ static OSStatus	BlackHole_GetPlugInPropertyData(AudioServerPlugInDriverRef inDri
 
 			if(CFStringCompare(*((CFStringRef*)inQualifierData), boxUID, 0) == kCFCompareEqualTo)
 			{
-				CFStringRef formattedString = CFStringCreateWithFormat(NULL, NULL, CFSTR(kBox_UID), kNumber_Of_Channels);
+			CFStringRef formattedString = get_box_uid();
 				if(CFStringCompare(*((CFStringRef*)inQualifierData), formattedString, 0) == kCFCompareEqualTo)
 				{
 					*((AudioObjectID*)outData) = kObjectID_Box;
